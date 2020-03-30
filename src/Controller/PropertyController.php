@@ -2,13 +2,17 @@
 
 namespace App\Controller;
 
+use Twig\Environment;
 use App\Entity\Property;
+use App\Entity\PropertySearch;
+use App\Form\PropertySearchType;
 use App\Repository\PropertyRepository;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Doctrine\ORM\EntityManagerInterface;
+use Knp\Component\Pager\PaginatorInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Doctrine\ORM\EntityManagerInterface;
-use Twig\Environment;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class PropertyController extends AbstractController
 {
@@ -33,31 +37,21 @@ class PropertyController extends AbstractController
      * @Route ("/biens", name="property.index")
      * @return Response
      */
-    public function index() : Response
+    public function index(PaginatorInterface $paginator, Request $request) : Response
     {
-        // $property = new Property();
-        // $property->setTitle("Mon premier bien")
-        //         ->setPrice(200000)
-        //         ->setRooms(4)
-        //         ->setBedrooms(3)
-        //         ->setDescription("Une petite description")
-        //         ->setSurface(60)
-        //         ->setFloor(4)
-        //         ->setHeat(1)
-        //         ->setCity("Monpellier")
-        //         ->setAdresse("15 boulevard Gambetta")
-        //         ->setPostalCode("34000");
-
-        //         $em = $this->getDoctrine()->getManager();
-        //         $em->persist($property);
-        //         $em->flush();
-
-        // $property = $this->repository->findAllVisible();
-        // $property[0]->setSold(true);
-        // $this->em->flush();
-
+        $search = new PropertySearch();
+        $form = $this->createForm(PropertySearchType::class, $search);
+        $form->handleRequest($request);
+        
+        $properties = $paginator->paginate(
+            $this->repository->findAllVisibleQuery($search),
+            $request->query->getInt('page', 1), /*page number*/
+            12 /*limit per page*/
+        );
         return $this->render('property/index.html.twig', [
-            'current_menu' => 'properties'
+            'current_menu' => 'properties',
+            'properties' => $properties,
+            'form' => $form->createView()
 
         ]);
     }
